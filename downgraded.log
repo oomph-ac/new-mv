@@ -1,0 +1,37 @@
+127.0.0.1:57554 -> [::]:19132: 1
+S->C 3 *packet.ServerToClientHandshake
+[::]:19132 -> 127.0.0.1:57554: 3
+127.0.0.1:57554 -> [::]:19132: 4
+1.16.100 -> Latest: *packet.ClientToServerHandshake (4)
+C->S 4 *packet.ClientToServerHandshake
+&{0}
+S->C 2 *packet.PlayStatus
+[::]:19132 -> 127.0.0.1:57554: 2
+S->C 6 *packet.ResourcePacksInfo
+[::]:19132 -> 127.0.0.1:57554: 6
+127.0.0.1:57554 -> [::]:19132: 129
+1.16.100 -> Latest: *packet.ClientCacheStatus (129)
+C->S 129 *packet.ClientCacheStatus
+127.0.0.1:57554 -> [::]:19132: 8
+1.16.100 -> Latest: *packet.ResourcePackClientResponse (8)
+C->S 8 *packet.ResourcePackClientResponse
+S->C 7 *packet.ResourcePackStack
+[::]:19132 -> 127.0.0.1:57554: 7
+127.0.0.1:57554 -> [::]:19132: 8
+1.16.100 -> Latest: *packet.ResourcePackClientResponse (8)
+C->S 8 *packet.ResourcePackClientResponse
+S->C 11 *packet.StartGame
+[::]:19132 -> 127.0.0.1:57554: 11
+127.0.0.1:57554 -> [::]:19132: 69
+1.16.100 -> Latest: *packet.RequestChunkRadius (69)
+C->S 69 *packet.RequestChunkRadius
+S->C 70 *packet.ChunkRadiusUpdated
+[::]:19132 -> 127.0.0.1:57554: 70
+S->C 122 *packet.BiomeDefinitionList
+[::]:19132 -> 127.0.0.1:57554: 122
+&{3}
+S->C 2 *packet.PlayStatus
+[::]:19132 -> 127.0.0.1:57554: 2
+S->C 145 *packet.CreativeContent
+[::]:19132 -> 127.0.0.1:57554: 145
+127.0.0.1:57554 -> [::]:19132: 23
