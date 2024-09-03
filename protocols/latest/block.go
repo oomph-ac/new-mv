@@ -11,7 +11,7 @@ const (
 	// BlockVersion is the version of blocks (states) of the game. This version is composed
 	// of 4 bytes indicating a version, interpreted as a big endian int. The current version represents
 	// 1.21.20.3 {1, 21, 20, 3}.
-	BlockVersion int32 = (1 << 24) | (21 << 16) | (0 << 8) | 3
+	BlockVersion int32 = (1 << 24) | (21 << 16) | (20 << 8) | 3
 )
 
 var (

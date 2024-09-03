@@ -2,6 +2,7 @@ package translator
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/df-mc/dragonfly/server/block/cube"
 	"github.com/df-mc/dragonfly/server/world"
@@ -44,7 +45,7 @@ func (t *DefaultBlockTranslator) DowngradeBlockPackets(pks []packet.Packet, conn
 
 			buf := bytes.NewBuffer(pk.RawPayload)
 			writeBuf := bytes.NewBuffer(nil)
-			if !pk.CacheEnabled && !conn.ClientCacheEnabled() {
+			if !pk.CacheEnabled {
 				c, err := chunk.NetworkDecode(t.latest.Air(), buf, count, false, world.Overworld.Range(), latest.NetworkPersistentEncoding, latest.BlockPaletteEncoding)
 				if err != nil {
 					//fmt.Println(err)
@@ -248,8 +249,10 @@ func (t *DefaultBlockTranslator) DowngradeBlockRuntimeID(input uint32) uint32 {
 
 func (t *DefaultBlockTranslator) DowngradeChunk(input *chunk.Chunk) *chunk.Chunk {
 	if t.latest == t.mapping {
+		fmt.Println("chunk not downgraded - block mapping is latest")
 		return input
 	}
+
 	start := 0
 	r := world.Overworld.Range()
 	if t.oldFormat {
@@ -276,6 +279,7 @@ func (t *DefaultBlockTranslator) DowngradeChunk(input *chunk.Chunk) *chunk.Chunk
 		i += 1
 	}
 
+	fmt.Println("chunk downgraded")
 	return downgraded
 }
 
