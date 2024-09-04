@@ -61,8 +61,8 @@ func (Protocol) Ver() string {
 	return "1.21.2"
 }
 
-func (Protocol) Packets(server bool) (pool packet.Pool) {
-	if server {
+func (Protocol) Packets(client bool) (pool packet.Pool) {
+	if !client {
 		pool = packet.NewServerPool()
 		delete(pool, packet.IDCurrentStructureFeature)
 		delete(pool, packet.IDJigsawStructureData)
@@ -86,7 +86,6 @@ func (Protocol) Packets(server bool) (pool packet.Pool) {
 		pool = packet.NewClientPool()
 		delete(pool, packet.IDServerBoundLoadingScreen)
 		delete(pool, packet.IDServerBoundDiagnostics)
-
 	}
 
 	pool[packet.IDEditorNetwork] = func() packet.Packet { return &v686packet.EditorNetwork{} }
@@ -274,9 +273,13 @@ func (p Protocol) ConvertFromLatest(pk packet.Packet, conn *minecraft.Conn) []pa
 	)
 }
 
+// ProtoDowngrade donwgrades the packets from the current version to the lower version.
 func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 	for index, pk := range pks {
 		switch pk := pk.(type) {
+		case *packet.CurrentStructureFeature, *packet.JigsawStructureData:
+			// These packets do not exist in this version, so we don't want them getting to the client.
+			return noPacketsAvailable
 		case *packet.AddActor:
 			eLinks := make([]types.EntityLink, len(pk.EntityLinks))
 			for index, link := range pk.EntityLinks {
