@@ -1,37 +1,14 @@
 package packet
 
 import (
+	v671packet "github.com/oomph-ac/new-mv/protocols/v671/packet"
 	"github.com/sandertv/gophertunnel/minecraft/nbt"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
 
-const (
-	SpawnBiomeTypeDefault = iota
-	SpawnBiomeTypeUserDefined
-)
-
-const (
-	ChatRestrictionLevelNone     = 0
-	ChatRestrictionLevelDropped  = 1
-	ChatRestrictionLevelDisabled = 2
-)
-
-const (
-	EditorWorldTypeNotEditor = iota
-	EditorWorldTypeProject
-	EditorWorldTypeTestLevel
-)
-
-// StartGame is sent by the server to send information about the world the player will be spawned in. It
-// contains information about the position the player spawns in, and information about the world in general
-// such as its game rules.
 type StartGame struct {
-	*packet.StartGame
-}
-
-func NewStartGame(pk *packet.StartGame) *StartGame {
-	return &StartGame{StartGame: pk}
+	*v671packet.StartGame
 }
 
 // ID ...
@@ -52,7 +29,6 @@ func (pk *StartGame) Marshal(io protocol.IO) {
 	io.Varint32(&pk.Dimension)
 	io.Varint32(&pk.Generator)
 	io.Varint32(&pk.WorldGameMode)
-	io.Bool(&pk.Hardcore)
 	io.Varint32(&pk.Difficulty)
 	io.UBlockPos(&pk.WorldSpawn)
 	io.Bool(&pk.AchievementsDisabled)

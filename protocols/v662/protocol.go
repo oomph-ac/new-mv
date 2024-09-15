@@ -1,4 +1,4 @@
-package v671
+package v662
 
 import (
 	_ "embed"
@@ -6,9 +6,12 @@ import (
 	"github.com/oomph-ac/new-mv/internal/chunk"
 	"github.com/oomph-ac/new-mv/mapping"
 	"github.com/oomph-ac/new-mv/protocols/latest"
+	v662packet "github.com/oomph-ac/new-mv/protocols/v662/packet"
+	"github.com/oomph-ac/new-mv/protocols/v662/types"
+	v671 "github.com/oomph-ac/new-mv/protocols/v671"
 	v671packet "github.com/oomph-ac/new-mv/protocols/v671/packet"
-	"github.com/oomph-ac/new-mv/protocols/v671/types"
-	v685 "github.com/oomph-ac/new-mv/protocols/v685"
+	v671types "github.com/oomph-ac/new-mv/protocols/v671/types"
+	v686packet "github.com/oomph-ac/new-mv/protocols/v686/packet"
 	"github.com/oomph-ac/new-mv/translator"
 	"github.com/sandertv/gophertunnel/minecraft"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
@@ -17,11 +20,11 @@ import (
 
 const (
 	// ItemVersion is the version of items of the game which use for downgrading and upgrading.
-	ItemVersion = 191
+	ItemVersion = 181
 	// BlockVersion is the version of blocks (states) of the game. This version is composed
 	// of 4 bytes indicating a version, interpreted as a big endian int. The current version represents
 	// 1.20.80.5
-	BlockVersion int32 = (1 << 24) | (20 << 16) | (80 << 8) | 5
+	BlockVersion int32 = (1 << 24) | (20 << 16) | (71 << 8) | 1
 )
 
 var (
@@ -53,21 +56,23 @@ func New(direct bool) *Protocol {
 }
 
 func (Protocol) ID() int32 {
-	return 671
+	return 662
 }
 
 func (Protocol) Ver() string {
-	return "1.20.80"
+	return "1.20.71"
 }
 
 func (Protocol) Packets(client bool) (pool packet.Pool) {
-	pool = (v685.Protocol{}).Packets(client)
+	pool = (v671.Protocol{}).Packets(client)
 	if !client {
-		pool[packet.IDContainerClose] = func() packet.Packet { return &v671packet.StartGame{} }
+		pool[packet.IDCorrectPlayerMovePrediction] = func() packet.Packet { return &v662packet.CorrectPlayerMovePrediction{} }
+		pool[packet.IDResourcePackStack] = func() packet.Packet { return &v662packet.ResourcePackStack{} }
+		pool[packet.IDStartGame] = func() packet.Packet { return &v662packet.StartGame{} }
+		pool[packet.IDUpdateBlockSynced] = func() packet.Packet { return &v662packet.UpdateBlockSynced{} }
+		pool[packet.IDUpdatePlayerGameType] = func() packet.Packet { return &v662packet.UpdatePlayerGameType{} }
 	}
 
-	pool[packet.IDContainerClose] = func() packet.Packet { return &v671packet.ContainerClose{} }
-	pool[packet.IDText] = func() packet.Packet { return &v671packet.Text{} }
 	return pool
 }
 
@@ -91,27 +96,7 @@ func (p Protocol) ConvertToLatest(pk packet.Packet, conn *minecraft.Conn) []pack
 }
 
 func ProtoUpgrade(pks []packet.Packet) []packet.Packet {
-	for index, pk := range pks {
-		switch pk := pk.(type) {
-		case *v671packet.ContainerClose:
-			pks[index] = &packet.ContainerClose{
-				WindowID:   pk.WindowID,
-				ServerSide: pk.ServerSide,
-			}
-		case *v671packet.Text:
-			pks[index] = &packet.Text{
-				TextType:         pk.TextType,
-				NeedsTranslation: pk.NeedsTranslation,
-				SourceName:       pk.SourceName,
-				Message:          pk.Message,
-				Parameters:       pk.Parameters,
-				XUID:             pk.XUID,
-				PlatformChatID:   pk.PlatformChatID,
-			}
-		}
-	}
-
-	return v685.ProtoUpgrade(pks)
+	return v671.ProtoUpgrade(pks)
 }
 
 func (p Protocol) ConvertFromLatest(pk packet.Packet, conn *minecraft.Conn) []packet.Packet {
@@ -124,43 +109,51 @@ func (p Protocol) ConvertFromLatest(pk packet.Packet, conn *minecraft.Conn) []pa
 }
 
 func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
-	pks = v685.ProtoDowngrade(pks)
+	pks = v671.ProtoDowngrade(pks)
 	for index, pk := range pks {
 		switch pk := pk.(type) {
+		case *v686packet.CorrectPlayerMovePrediction:
+			pks[index] = &v662packet.CorrectPlayerMovePrediction{
+				PredictionType: pk.PredictionType,
+				Position:       pk.Position,
+				Delta:          pk.Delta,
+				OnGround:       pk.OnGround,
+				Tick:           pk.Tick,
+			}
 		case *packet.CraftingData:
 			for index, recp := range pk.Recipes {
 				switch recp := recp.(type) {
-				case *protocol.ShapelessRecipe:
-					pk.Recipes[index] = &types.ShapelessRecipe{ShapelessRecipe: *recp}
-				case *protocol.ShapedRecipe:
+				case *v671types.ShapedRecipe:
 					pk.Recipes[index] = &types.ShapedRecipe{ShapedRecipe: *recp}
-				case *protocol.ShulkerBoxRecipe:
-					pk.Recipes[index] = &types.ShulkerBoxRecipe{ShapelessRecipe: types.ShapelessRecipe{ShapelessRecipe: recp.ShapelessRecipe}}
-				case *protocol.ShapelessChemistryRecipe:
-					pk.Recipes[index] = &types.ShulkerBoxRecipe{ShapelessRecipe: types.ShapelessRecipe{ShapelessRecipe: recp.ShapelessRecipe}}
-				case *protocol.ShapedChemistryRecipe:
-					pk.Recipes[index] = &types.ShapedChemistryRecipe{ShapedRecipe: types.ShapedRecipe{ShapedRecipe: recp.ShapedRecipe}}
+				case *v671types.ShapedChemistryRecipe:
+					pk.Recipes[index] = &types.ShapedRecipe{ShapedRecipe: recp.ShapedRecipe}
 				}
 			}
-
-			pks[index] = pk
-		case *packet.ContainerClose:
-			pks[index] = &v671packet.ContainerClose{
-				WindowID:   pk.WindowID,
-				ServerSide: pk.ServerSide,
+		case *packet.ResourcePackStack:
+			pks[index] = &v662packet.ResourcePackStack{
+				TexturePackRequired:          pk.TexturePackRequired,
+				BehaviourPacks:               pk.BehaviourPacks,
+				TexturePacks:                 pk.TexturePacks,
+				BaseGameVersion:              pk.BaseGameVersion,
+				Experiments:                  pk.Experiments,
+				ExperimentsPreviouslyToggled: pk.ExperimentsPreviouslyToggled,
 			}
-		case *packet.Text:
-			pks[index] = &v671packet.Text{
-				TextType:         pk.TextType,
-				NeedsTranslation: pk.NeedsTranslation,
-				SourceName:       pk.SourceName,
-				Message:          pk.Message,
-				Parameters:       pk.Parameters,
-				XUID:             pk.XUID,
-				PlatformChatID:   pk.PlatformChatID,
+		case *v671packet.StartGame:
+			pks[index] = &v662packet.StartGame{StartGame: pk}
+		case *packet.UpdateBlockSynced:
+			pks[index] = &v662packet.UpdateBlockSynced{
+				Position:          pk.Position,
+				NewBlockRuntimeID: pk.NewBlockRuntimeID,
+				Flags:             pk.Flags,
+				Layer:             pk.Layer,
+				EntityUniqueID:    int64(pk.EntityUniqueID),
+				TransitionType:    pk.TransitionType,
 			}
-		case *packet.StartGame:
-			pks[index] = &v671packet.StartGame{StartGame: pk}
+		case *packet.UpdatePlayerGameType:
+			pks[index] = &v662packet.UpdatePlayerGameType{
+				GameType:       pk.GameType,
+				PlayerUniqueID: pk.PlayerUniqueID,
+			}
 		}
 	}
 

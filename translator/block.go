@@ -2,7 +2,6 @@ package translator
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/df-mc/dragonfly/server/block/cube"
 	"github.com/df-mc/dragonfly/server/world"
@@ -249,7 +248,6 @@ func (t *DefaultBlockTranslator) DowngradeBlockRuntimeID(input uint32) uint32 {
 
 func (t *DefaultBlockTranslator) DowngradeChunk(input *chunk.Chunk) *chunk.Chunk {
 	if t.latest == t.mapping {
-		fmt.Println("chunk not downgraded - block mapping is latest")
 		return input
 	}
 

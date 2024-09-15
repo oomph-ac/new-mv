@@ -1,19 +1,19 @@
-package v671
+package v662
 
 import (
 	"fmt"
 
-	"github.com/oomph-ac/new-mv/protocols/v671/types"
-	v685 "github.com/oomph-ac/new-mv/protocols/v685"
+	"github.com/oomph-ac/new-mv/protocols/v662/types"
+	v671 "github.com/oomph-ac/new-mv/protocols/v671"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 )
 
 type Reader struct {
-	*v685.Reader
+	*v671.Reader
 }
 
 func NewReader(r *protocol.Reader) *Reader {
-	return &Reader{v685.NewReader(r)}
+	return &Reader{v671.NewReader(r)}
 }
 
 // Recipe reads a Recipe from the reader.
@@ -28,11 +28,11 @@ func (r *Reader) Recipe(x *protocol.Recipe) {
 }
 
 type Writer struct {
-	*v685.Writer
+	*v671.Writer
 }
 
 func NewWriter(w *protocol.Writer) *Writer {
-	return &Writer{v685.NewWriter(w)}
+	return &Writer{v671.NewWriter(w)}
 }
 
 // Recipe writes a Recipe to the writer.
