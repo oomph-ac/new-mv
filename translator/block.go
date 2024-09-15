@@ -279,7 +279,6 @@ func (t *DefaultBlockTranslator) DowngradeChunk(input *chunk.Chunk) *chunk.Chunk
 		i += 1
 	}
 
-	fmt.Println("chunk downgraded")
 	return downgraded
 }
 
