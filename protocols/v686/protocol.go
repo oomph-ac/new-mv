@@ -31,8 +31,43 @@ var (
 	//go:embed block_states.nbt
 	blockStateData []byte
 
+	packetPool_server packet.Pool
+	packetPool_client packet.Pool
+
 	noPacketsAvailable = []packet.Packet{}
 )
+
+func init() {
+	packetPool_server = packet.NewServerPool()
+	delete(packetPool_server, packet.IDCurrentStructureFeature)
+	delete(packetPool_server, packet.IDJigsawStructureData)
+
+	packetPool_server[packet.IDAddActor] = func() packet.Packet { return &v686packet.AddActor{} }
+	packetPool_server[packet.IDAddPlayer] = func() packet.Packet { return &v686packet.AddPlayer{} }
+	packetPool_server[packet.IDCameraInstruction] = func() packet.Packet { return &v686packet.CameraInstruction{} }
+	packetPool_server[packet.IDCameraPresets] = func() packet.Packet { return &v686packet.CameraPresets{} }
+	packetPool_server[packet.IDChangeDimension] = func() packet.Packet { return &v686packet.ChangeDimension{} }
+	packetPool_server[packet.IDCorrectPlayerMovePrediction] = func() packet.Packet { return &v686packet.CorrectPlayerMovePrediction{} }
+	packetPool_server[packet.IDDisconnect] = func() packet.Packet { return &v686packet.Disconnect{} }
+	packetPool_server[packet.IDInventoryContent] = func() packet.Packet { return &v686packet.InventoryContent{} }
+	packetPool_server[packet.IDInventorySlot] = func() packet.Packet { return &v686packet.InventorySlot{} }
+	packetPool_server[packet.IDItemStackResponse] = func() packet.Packet { return &v686packet.ItemStackResponse{} }
+	packetPool_server[packet.IDPlayerArmourDamage] = func() packet.Packet { return &v686packet.PlayerArmourDamage{} }
+	packetPool_server[packet.IDResourcePacksInfo] = func() packet.Packet { return &v686packet.ResourcePacksInfo{} }
+	packetPool_server[packet.IDSetTitle] = func() packet.Packet { return &v686packet.SetTitle{} }
+	packetPool_server[packet.IDStopSound] = func() packet.Packet { return &v686packet.StopSound{} }
+	packetPool_server[packet.IDSetActorLink] = func() packet.Packet { return &v686packet.SetActorLink{} }
+
+	packetPool_client = packet.NewClientPool()
+	delete(packetPool_client, packet.IDServerBoundLoadingScreen)
+	delete(packetPool_client, packet.IDServerBoundDiagnostics)
+
+	// packets used by both client and server...
+	packetPool_server[packet.IDEditorNetwork] = func() packet.Packet { return &v686packet.EditorNetwork{} }
+	packetPool_server[packet.IDMobArmourEquipment] = func() packet.Packet { return &v686packet.MobArmourEquipment{} }
+	packetPool_client[packet.IDEditorNetwork] = func() packet.Packet { return &v686packet.EditorNetwork{} }
+	packetPool_client[packet.IDMobArmourEquipment] = func() packet.Packet { return &v686packet.MobArmourEquipment{} }
+}
 
 type Protocol struct {
 	itemMapping     mapping.Item
@@ -61,36 +96,11 @@ func (Protocol) Ver() string {
 	return "1.21.2"
 }
 
-func (Protocol) Packets(client bool) (pool packet.Pool) {
-	if !client {
-		pool = packet.NewServerPool()
-		delete(pool, packet.IDCurrentStructureFeature)
-		delete(pool, packet.IDJigsawStructureData)
-
-		pool[packet.IDAddActor] = func() packet.Packet { return &v686packet.AddActor{} }
-		pool[packet.IDAddPlayer] = func() packet.Packet { return &v686packet.AddPlayer{} }
-		pool[packet.IDCameraInstruction] = func() packet.Packet { return &v686packet.CameraInstruction{} }
-		pool[packet.IDCameraPresets] = func() packet.Packet { return &v686packet.CameraPresets{} }
-		pool[packet.IDChangeDimension] = func() packet.Packet { return &v686packet.ChangeDimension{} }
-		pool[packet.IDCorrectPlayerMovePrediction] = func() packet.Packet { return &v686packet.CorrectPlayerMovePrediction{} }
-		pool[packet.IDDisconnect] = func() packet.Packet { return &v686packet.Disconnect{} }
-		pool[packet.IDInventoryContent] = func() packet.Packet { return &v686packet.InventoryContent{} }
-		pool[packet.IDInventorySlot] = func() packet.Packet { return &v686packet.InventorySlot{} }
-		pool[packet.IDItemStackResponse] = func() packet.Packet { return &v686packet.ItemStackResponse{} }
-		pool[packet.IDPlayerArmourDamage] = func() packet.Packet { return &v686packet.PlayerArmourDamage{} }
-		pool[packet.IDResourcePacksInfo] = func() packet.Packet { return &v686packet.ResourcePacksInfo{} }
-		pool[packet.IDSetTitle] = func() packet.Packet { return &v686packet.SetTitle{} }
-		pool[packet.IDStopSound] = func() packet.Packet { return &v686packet.StopSound{} }
-		pool[packet.IDSetActorLink] = func() packet.Packet { return &v686packet.SetActorLink{} }
-	} else {
-		pool = packet.NewClientPool()
-		delete(pool, packet.IDServerBoundLoadingScreen)
-		delete(pool, packet.IDServerBoundDiagnostics)
+func (Protocol) Packets(listener bool) packet.Pool {
+	if listener {
+		return packetPool_client
 	}
-
-	pool[packet.IDEditorNetwork] = func() packet.Packet { return &v686packet.EditorNetwork{} }
-	pool[packet.IDMobArmourEquipment] = func() packet.Packet { return &v686packet.MobArmourEquipment{} }
-	return pool
+	return packetPool_server
 }
 
 func (Protocol) Encryption(key [32]byte) packet.Encryption {
@@ -265,21 +275,15 @@ func ProtoUpgrade(pks []packet.Packet) []packet.Packet {
 }
 
 func (p Protocol) ConvertFromLatest(pk packet.Packet, conn *minecraft.Conn) []packet.Packet {
-	return ProtoDowngrade(
-		p.blockTranslator.DowngradeBlockPackets(
-			p.itemTranslator.DowngradeItemPackets([]packet.Packet{pk}, conn),
-			conn,
-		),
-	)
+	return ProtoDowngrade(p.blockTranslator.DowngradeBlockPackets(
+		p.itemTranslator.DowngradeItemPackets([]packet.Packet{pk}, conn),
+		conn,
+	))
 }
 
-// ProtoDowngrade donwgrades the packets from the current version to the lower version.
 func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 	for index, pk := range pks {
 		switch pk := pk.(type) {
-		case *packet.CurrentStructureFeature, *packet.JigsawStructureData:
-			// These packets do not exist in this version, so we don't want them getting to the client.
-			return noPacketsAvailable
 		case *packet.AddActor:
 			eLinks := make([]types.EntityLink, len(pk.EntityLinks))
 			for index, link := range pk.EntityLinks {
@@ -430,23 +434,25 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 			}
 		case *packet.ResourcePacksInfo:
 			tPacks := make([]types.TexturePackInfo, len(pk.TexturePacks))
+			packURLs := []protocol.PackURL{}
 			for index, pack := range pk.TexturePacks {
 				tPacks[index] = types.TexturePackInfo{TexturePackInfo: pack}
-			}
-
-			bPacks := make([]types.BehaviourPackInfo, len(pk.BehaviourPacks))
-			for index, pack := range pk.BehaviourPacks {
-				bPacks[index] = types.BehaviourPackInfo{BehaviourPackInfo: pack}
+				if pack.DownloadURL != "" {
+					packURLs = append(packURLs, protocol.PackURL{
+						UUIDVersion: pack.UUID + "_" + pack.Version,
+						URL:         pack.DownloadURL,
+					})
+				}
 			}
 
 			pks[index] = &v686packet.ResourcePacksInfo{
 				TexturePackRequired: pk.TexturePackRequired,
 				HasAddons:           pk.HasAddons,
 				HasScripts:          pk.HasScripts,
-				BehaviourPacks:      bPacks,
+				BehaviourPacks:      []types.TexturePackInfo{},
 				TexturePacks:        tPacks,
-				ForcingServerPacks:  pk.ForcingServerPacks,
-				PackURLs:            pk.PackURLs,
+				ForcingServerPacks:  true,
+				PackURLs:            packURLs,
 			}
 		case *packet.SetTitle:
 			pks[index] = &v686packet.SetTitle{

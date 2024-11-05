@@ -1,6 +1,8 @@
 package raknet
 
 import (
+	"context"
+	"log/slog"
 	"net"
 
 	"github.com/sandertv/go-raknet"
@@ -10,15 +12,26 @@ import (
 
 // MultiRakNet is an implementation of a RakNet v9/10 Network.
 type MultiRakNet struct {
-	minecraft.RakNet
+	l *slog.Logger
 }
 
 // legacyRakNet represents the legacy version of RakNet, necessary for versions higher or equal to v1.16.0.
 const legacyRakNet = 10
 
+// DialContext ...
+func (r MultiRakNet) DialContext(ctx context.Context, address string) (net.Conn, error) {
+	return raknet.Dialer{ErrorLog: r.l.With("net origin", "raknet")}.DialContext(ctx, address)
+}
+
+// PingContext ...
+func (r MultiRakNet) PingContext(ctx context.Context, address string) (response []byte, err error) {
+	return raknet.Dialer{ErrorLog: r.l.With("net origin", "raknet")}.PingContext(ctx, address)
+}
+
 // Listen ...
-func (MultiRakNet) Listen(address string) (minecraft.NetworkListener, error) {
+func (r MultiRakNet) Listen(address string) (minecraft.NetworkListener, error) {
 	return raknet.ListenConfig{
+		ErrorLog:         r.l.With("net origin", "raknet"),
 		ProtocolVersions: []byte{legacyRakNet}, // Version 10 is required for legacy versions.
 	}.Listen(address)
 }
@@ -30,5 +43,7 @@ func (MultiRakNet) Compression(net.Conn) packet.Compression {
 
 // init registers the MultiRakNet network. It overrides the existing minecraft.RakNet network.
 func init() {
-	minecraft.RegisterNetwork("raknet", MultiRakNet{})
+	minecraft.RegisterNetwork("raknet", func(l *slog.Logger) minecraft.Network {
+		return MultiRakNet{l: l}
+	})
 }
