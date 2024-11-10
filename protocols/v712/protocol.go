@@ -1,4 +1,4 @@
-package v729
+package v712
 
 import (
 	_ "embed"
@@ -6,8 +6,8 @@ import (
 	"github.com/oomph-ac/new-mv/internal/chunk"
 	"github.com/oomph-ac/new-mv/mapping"
 	"github.com/oomph-ac/new-mv/protocols/latest"
-	v729packet "github.com/oomph-ac/new-mv/protocols/v729/packet"
-	"github.com/oomph-ac/new-mv/protocols/v729/types"
+	v712packet "github.com/oomph-ac/new-mv/protocols/v712/packet"
+	"github.com/oomph-ac/new-mv/protocols/v712/types"
 	"github.com/oomph-ac/new-mv/translator"
 	"github.com/sandertv/gophertunnel/minecraft"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
@@ -19,8 +19,8 @@ const (
 	ItemVersion = 221
 	// BlockVersion is the version of blocks (states) of the game. This version is composed
 	// of 4 bytes indicating a version, interpreted as a big endian int. The current version represents
-	// 1.21.30.0
-	BlockVersion int32 = (1 << 24) | (21 << 16) | (30 << 8)
+	// 1.21.20
+	BlockVersion int32 = (1 << 24) | (21 << 16) | (20 << 8)
 )
 
 var (
@@ -39,16 +39,30 @@ func init() {
 	packetPool_server = packet.NewServerPool()
 	packetPool_client = packet.NewClientPool()
 
+	// ------------------------ 1.21.30 changes ------------------------
 	delete(packetPool_server, packet.IDMovementEffect)
 	delete(packetPool_server, packet.IDSetMovementAuthority)
 
-	packetPool_server[packet.IDCameraPresets] = func() packet.Packet { return &v729packet.CameraPresets{} }
-	packetPool_server[packet.IDInventoryContent] = func() packet.Packet { return &v729packet.InventoryContent{} }
-	packetPool_server[packet.IDInventorySlot] = func() packet.Packet { return &v729packet.InventorySlot{} }
-	packetPool_server[packet.IDMobEffect] = func() packet.Packet { return &v729packet.MobEffect{} }
-	packetPool_server[packet.IDResourcePacksInfo] = func() packet.Packet { return &v729packet.ResourcePacksInfo{} }
+	packetPool_server[packet.IDMobEffect] = func() packet.Packet { return &v712packet.MobEffect{} }
+	packetPool_client[packet.IDPlayerAuthInput] = func() packet.Packet { return &v712packet.PlayerAuthInput{} }
+	// ------------------------ 1.21.30 changes ------------------------
 
-	packetPool_client[packet.IDPlayerAuthInput] = func() packet.Packet { return &v729packet.PlayerAuthInput{} }
+	// ------------------------ 1.21.20 changes ------------------------
+	delete(packetPool_server, packet.IDCameraAimAssist)
+	delete(packetPool_server, packet.IDContainerRegistryCleanup)
+
+	packetPool_server[packet.IDEmote] = func() packet.Packet { return &v712packet.Emote{} }
+	packetPool_client[packet.IDEmote] = func() packet.Packet { return &v712packet.Emote{} }
+
+	packetPool_server[packet.IDCameraPresets] = func() packet.Packet { return &v712packet.CameraPresets{} }
+	packetPool_server[packet.IDContainerRegistryCleanup] = func() packet.Packet { return &v712packet.ContainerRegistryCleanup{} }
+	packetPool_server[packet.IDInventoryContent] = func() packet.Packet { return &v712packet.InventoryContent{} }
+	packetPool_server[packet.IDInventorySlot] = func() packet.Packet { return &v712packet.InventorySlot{} }
+	packetPool_server[packet.IDItemStackResponse] = func() packet.Packet { return &v712packet.ItemStackResponse{} }
+	packetPool_server[packet.IDResourcePacksInfo] = func() packet.Packet { return &v712packet.ResourcePacksInfo{} }
+	packetPool_server[packet.IDTransfer] = func() packet.Packet { return &v712packet.Transfer{} }
+	packetPool_server[packet.IDUpdateAttributes] = func() packet.Packet { return &v712packet.UpdateAttributes{} }
+	// ------------------------ 1.21.20 changes ------------------------
 }
 
 type Protocol struct {
@@ -72,7 +86,7 @@ func New(direct bool) *Protocol {
 }
 
 func (Protocol) ID() int32 {
-	return 729
+	return 712
 }
 
 func (Protocol) Ver() string {
@@ -108,7 +122,16 @@ func (p Protocol) ConvertToLatest(pk packet.Packet, conn *minecraft.Conn) []pack
 func ProtoUpgrade(pks []packet.Packet) []packet.Packet {
 	for index, pk := range pks {
 		switch pk := pk.(type) {
-		case *v729packet.PlayerAuthInput:
+		case *v712packet.Emote:
+			pks[index] = &packet.Emote{
+				EntityRuntimeID: pk.EntityRuntimeID,
+				EmoteID:         pk.EmoteID,
+				EmoteLength:     100, // TODO: ???
+				XUID:            pk.XUID,
+				PlatformID:      pk.PlatformID,
+				Flags:           pk.Flags,
+			}
+		case *v712packet.PlayerAuthInput:
 			pks[index] = &packet.PlayerAuthInput{
 				Pitch:                  pk.Pitch,
 				Yaw:                    pk.Yaw,
@@ -129,6 +152,15 @@ func ProtoUpgrade(pks []packet.Packet) []packet.Packet {
 				VehicleRotation:        pk.VehicleRotation,
 				ClientPredictedVehicle: pk.ClientPredictedVehicle,
 				AnalogueMoveVector:     pk.AnalogueMoveVector,
+			}
+		case *packet.ItemStackRequest:
+			for index, request := range pk.Requests {
+				pk.Requests[index] = protocol.ItemStackRequest{
+					RequestID:     request.RequestID,
+					Actions:       types.UpgradeItemStackActions(request.Actions),
+					FilterStrings: request.FilterStrings,
+					FilterCause:   request.FilterCause,
+				}
 			}
 		}
 	}
@@ -157,36 +189,71 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 					PosZ:          preset.PosZ,
 					RotX:          preset.RotX,
 					RotY:          preset.RotY,
-					RotationSpeed: preset.RotationSpeed,
-					SnapToTarget:  preset.SnapToTarget,
 					ViewOffset:    preset.ViewOffset,
-					EntityOffset:  preset.EntityOffset,
 					Radius:        preset.Radius,
 					AudioListener: preset.AudioListener,
 					PlayerEffects: preset.PlayerEffects,
 				}
 			}
 
-			pks[index] = &v729packet.CameraPresets{
+			pks[index] = &v712packet.CameraPresets{
 				Presets: presets,
 			}
+		case *packet.ContainerRegistryCleanup:
+			containers := make([]types.FullContainerName, len(pk.RemovedContainers))
+			for index, c := range pk.RemovedContainers {
+				dynContainerID, _ := c.DynamicContainerID.Value()
+				containers[index] = types.FullContainerName{
+					ContainerID:        c.ContainerID,
+					DynamicContainerID: dynContainerID,
+				}
+			}
+		case *packet.Emote:
+			pks[index] = &v712packet.Emote{
+				EntityRuntimeID: pk.EntityRuntimeID,
+				EmoteID:         pk.EmoteID,
+				XUID:            pk.XUID,
+				PlatformID:      pk.PlatformID,
+				Flags:           pk.Flags,
+			}
 		case *packet.InventoryContent:
-			pks[index] = &v729packet.InventoryContent{
-				WindowID:             pk.WindowID,
-				Content:              pk.Content,
-				Container:            pk.Container,
-				DynamicContainerSize: 0, // TODO: ???
+			dynID, _ := pk.Container.DynamicContainerID.Value()
+			pks[index] = &v712packet.InventoryContent{
+				WindowID:        pk.WindowID,
+				Content:         pk.Content,
+				DynamicWindowID: dynID,
 			}
 		case *packet.InventorySlot:
-			pks[index] = &v729packet.InventorySlot{
-				WindowID:             pk.WindowID,
-				Slot:                 pk.Slot,
-				Container:            pk.Container,
-				DynamicContainerSize: 0, // TODO: ???
-				NewItem:              pk.NewItem,
+			dynID, _ := pk.Container.DynamicContainerID.Value()
+			pks[index] = &v712packet.InventorySlot{
+				WindowID:        pk.WindowID,
+				Slot:            pk.Slot,
+				DynamicWindowID: dynID,
+				NewItem:         pk.NewItem,
+			}
+		case *packet.ItemStackResponse:
+			responses := make([]types.ItemStackResponse, len(pk.Responses))
+			for index, response := range pk.Responses {
+				containerInfo := make([]types.StackResponseContainerInfo, len(response.ContainerInfo))
+				for cIndex, info := range response.ContainerInfo {
+					containerInfo[cIndex] = types.StackResponseContainerInfo{
+						Container: types.DowngradeContainer(info.Container),
+						SlotInfo:  info.SlotInfo,
+					}
+				}
+
+				responses[index] = types.ItemStackResponse{
+					Status:        response.Status,
+					RequestID:     response.RequestID,
+					ContainerInfo: containerInfo,
+				}
+			}
+
+			pks[index] = &v712packet.ItemStackResponse{
+				Responses: responses,
 			}
 		case *packet.MobEffect:
-			pks[index] = &v729packet.MobEffect{
+			pks[index] = &v712packet.MobEffect{
 				EntityRuntimeID: pk.EntityRuntimeID,
 				Operation:       pk.Operation,
 				EffectType:      pk.EffectType,
@@ -219,12 +286,32 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				}
 			}
 
-			pks[index] = &v729packet.ResourcePacksInfo{
+			pks[index] = &v712packet.ResourcePacksInfo{
 				TexturePackRequired: pk.TexturePackRequired,
 				HasAddons:           pk.HasAddons,
 				HasScripts:          pk.HasScripts,
 				TexturePacks:        packs,
 				PackURLs:            packURLs,
+			}
+		case *packet.Transfer:
+			pks[index] = &v712packet.Transfer{
+				Address: pk.Address,
+				Port:    pk.Port,
+			}
+		case *packet.UpdateAttributes:
+			attributes := make([]types.Attribute, len(pk.Attributes))
+			for index, a := range pk.Attributes {
+				attributes[index] = types.Attribute{
+					AttributeValue: a.AttributeValue,
+					Default:        a.Default,
+					Modifiers:      a.Modifiers,
+				}
+			}
+
+			pks[index] = &v712packet.UpdateAttributes{
+				EntityRuntimeID: pk.EntityRuntimeID,
+				Attributes:      attributes,
+				Tick:            pk.Tick,
 			}
 		}
 	}
