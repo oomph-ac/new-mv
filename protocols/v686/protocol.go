@@ -2,6 +2,7 @@ package v686
 
 import (
 	_ "embed"
+	"fmt"
 
 	"github.com/oomph-ac/new-mv/internal/chunk"
 	"github.com/oomph-ac/new-mv/mapping"
@@ -39,34 +40,56 @@ var (
 
 func init() {
 	packetPool_server = packet.NewServerPool()
+	packetPool_client = packet.NewClientPool()
+
+	// ------------------------ 1.21.30 changes ------------------------
+	delete(packetPool_server, packet.IDMovementEffect)
+	delete(packetPool_server, packet.IDSetMovementAuthority)
+
+	packetPool_server[packet.IDMobEffect] = func() packet.Packet { return &v686packet.MobEffect{} }
+	packetPool_client[packet.IDPlayerAuthInput] = func() packet.Packet { return &v686packet.PlayerAuthInput{} }
+	// ------------------------ 1.21.30 changes ------------------------
+
+	// ------------------------ 1.21.20 changes ------------------------
+	delete(packetPool_server, packet.IDCameraAimAssist)
+	delete(packetPool_server, packet.IDContainerRegistryCleanup)
+
+	packetPool_server[packet.IDEmote] = func() packet.Packet { return &v686packet.Emote{} }
+	packetPool_client[packet.IDEmote] = func() packet.Packet { return &v686packet.Emote{} }
+
+	packetPool_server[packet.IDCameraPresets] = func() packet.Packet { return &v686packet.CameraPresets{} }
+	packetPool_server[packet.IDContainerRegistryCleanup] = func() packet.Packet { return &v686packet.ContainerRegistryCleanup{} }
+	packetPool_server[packet.IDItemStackResponse] = func() packet.Packet { return &v686packet.ItemStackResponse{} }
+	packetPool_server[packet.IDResourcePacksInfo] = func() packet.Packet { return &v686packet.ResourcePacksInfo{} }
+	packetPool_server[packet.IDTransfer] = func() packet.Packet { return &v686packet.Transfer{} }
+	packetPool_server[packet.IDUpdateAttributes] = func() packet.Packet { return &v686packet.UpdateAttributes{} }
+	// ------------------------ 1.21.20 changes ------------------------
+
+	// ------------------------ 1.21.2 changes ------------------------
 	delete(packetPool_server, packet.IDCurrentStructureFeature)
 	delete(packetPool_server, packet.IDJigsawStructureData)
+	delete(packetPool_client, packet.IDServerBoundDiagnostics)
+	delete(packetPool_client, packet.IDServerBoundLoadingScreen)
+
+	packetPool_server[packet.IDMobArmourEquipment] = func() packet.Packet { return &v686packet.MobArmourEquipment{} }
+	packetPool_client[packet.IDMobArmourEquipment] = func() packet.Packet { return &v686packet.MobArmourEquipment{} }
+
+	packetPool_server[packet.IDEditorNetwork] = func() packet.Packet { return &v686packet.EditorNetwork{} }
+	packetPool_client[packet.IDEditorNetwork] = func() packet.Packet { return &v686packet.EditorNetwork{} }
 
 	packetPool_server[packet.IDAddActor] = func() packet.Packet { return &v686packet.AddActor{} }
 	packetPool_server[packet.IDAddPlayer] = func() packet.Packet { return &v686packet.AddPlayer{} }
 	packetPool_server[packet.IDCameraInstruction] = func() packet.Packet { return &v686packet.CameraInstruction{} }
-	packetPool_server[packet.IDCameraPresets] = func() packet.Packet { return &v686packet.CameraPresets{} }
 	packetPool_server[packet.IDChangeDimension] = func() packet.Packet { return &v686packet.ChangeDimension{} }
+	packetPool_server[packet.IDCompressedBiomeDefinitionList] = func() packet.Packet { return &v686packet.CompressedBiomeDefinitionList{} }
 	packetPool_server[packet.IDCorrectPlayerMovePrediction] = func() packet.Packet { return &v686packet.CorrectPlayerMovePrediction{} }
 	packetPool_server[packet.IDDisconnect] = func() packet.Packet { return &v686packet.Disconnect{} }
 	packetPool_server[packet.IDInventoryContent] = func() packet.Packet { return &v686packet.InventoryContent{} }
 	packetPool_server[packet.IDInventorySlot] = func() packet.Packet { return &v686packet.InventorySlot{} }
-	packetPool_server[packet.IDItemStackResponse] = func() packet.Packet { return &v686packet.ItemStackResponse{} }
 	packetPool_server[packet.IDPlayerArmourDamage] = func() packet.Packet { return &v686packet.PlayerArmourDamage{} }
-	packetPool_server[packet.IDResourcePacksInfo] = func() packet.Packet { return &v686packet.ResourcePacksInfo{} }
 	packetPool_server[packet.IDSetTitle] = func() packet.Packet { return &v686packet.SetTitle{} }
 	packetPool_server[packet.IDStopSound] = func() packet.Packet { return &v686packet.StopSound{} }
-	packetPool_server[packet.IDSetActorLink] = func() packet.Packet { return &v686packet.SetActorLink{} }
-
-	packetPool_client = packet.NewClientPool()
-	delete(packetPool_client, packet.IDServerBoundLoadingScreen)
-	delete(packetPool_client, packet.IDServerBoundDiagnostics)
-
-	// packets used by both client and server...
-	packetPool_server[packet.IDEditorNetwork] = func() packet.Packet { return &v686packet.EditorNetwork{} }
-	packetPool_server[packet.IDMobArmourEquipment] = func() packet.Packet { return &v686packet.MobArmourEquipment{} }
-	packetPool_client[packet.IDEditorNetwork] = func() packet.Packet { return &v686packet.EditorNetwork{} }
-	packetPool_client[packet.IDMobArmourEquipment] = func() packet.Packet { return &v686packet.MobArmourEquipment{} }
+	// ------------------------ 1.21.2 changes ------------------------
 }
 
 type Protocol struct {
@@ -116,15 +139,24 @@ func (Protocol) NewWriter(w minecraft.ByteWriter, shieldID int32) protocol.IO {
 }
 
 func (p Protocol) ConvertToLatest(pk packet.Packet, conn *minecraft.Conn) []packet.Packet {
-	return p.blockTranslator.UpgradeBlockPackets(
-		p.itemTranslator.UpgradeItemPackets(ProtoUpgrade([]packet.Packet{pk}), conn),
+	return ProtoUpgrade(p.blockTranslator.UpgradeBlockPackets(
+		p.itemTranslator.UpgradeItemPackets([]packet.Packet{pk}, conn),
 		conn,
-	)
+	))
 }
 
 func ProtoUpgrade(pks []packet.Packet) []packet.Packet {
 	for index, pk := range pks {
 		switch pk := pk.(type) {
+		case *v686packet.Emote:
+			pks[index] = &packet.Emote{
+				EntityRuntimeID: pk.EntityRuntimeID,
+				EmoteID:         pk.EmoteID,
+				EmoteLength:     100, // TODO: ???
+				XUID:            pk.XUID,
+				PlatformID:      pk.PlatformID,
+				Flags:           pk.Flags,
+			}
 		case *v686packet.EditorNetwork:
 			pks[index] = &packet.EditorNetwork{
 				RouteToManager: false,
@@ -141,132 +173,54 @@ func ProtoUpgrade(pks []packet.Packet) []packet.Packet {
 		case *packet.InventoryTransaction:
 			var transactionData protocol.InventoryTransactionData = pk.TransactionData
 			if t, ok := pk.TransactionData.(*types.UseItemTransactionData); ok {
-				transactionData = &t.UseItemTransactionData
+				transactionData = &protocol.UseItemTransactionData{
+					ActionType:      t.ActionType,
+					BlockPosition:   t.BlockPosition,
+					BlockFace:       t.BlockFace,
+					HotBarSlot:      t.HotBarSlot,
+					HeldItem:        t.HeldItem,
+					Position:        t.Position,
+					ClickedPosition: t.ClickedPosition,
+					BlockRuntimeID:  t.BlockRuntimeID,
+				}
 			}
 
 			pk.TransactionData = transactionData
 			pks[index] = pk
 		case *packet.ItemStackRequest:
 			for i, req := range pk.Requests {
-				for aIndex, action := range req.Actions {
-					var newAction protocol.StackRequestAction = action
-
-					switch oldAction := action.(type) {
-					case *types.TakeStackRequestAction:
-						a := &protocol.TakeStackRequestAction{}
-						a.Count = oldAction.Count
-						a.Source = protocol.StackRequestSlotInfo{
-							Container:      protocol.FullContainerName{ContainerID: oldAction.Source.ContainerID},
-							Slot:           oldAction.Source.Slot,
-							StackNetworkID: oldAction.Source.StackNetworkID,
-						}
-						a.Destination = protocol.StackRequestSlotInfo{
-							Container:      protocol.FullContainerName{ContainerID: oldAction.Destination.ContainerID},
-							Slot:           oldAction.Destination.Slot,
-							StackNetworkID: oldAction.Destination.StackNetworkID,
-						}
-						newAction = a
-					case *types.PlaceStackRequestAction:
-						a := &protocol.PlaceStackRequestAction{}
-						a.Count = oldAction.Count
-						a.Source = protocol.StackRequestSlotInfo{
-							Container:      protocol.FullContainerName{ContainerID: oldAction.Source.ContainerID},
-							Slot:           oldAction.Source.Slot,
-							StackNetworkID: oldAction.Source.StackNetworkID,
-						}
-						a.Destination = protocol.StackRequestSlotInfo{
-							Container:      protocol.FullContainerName{ContainerID: oldAction.Destination.ContainerID},
-							Slot:           oldAction.Destination.Slot,
-							StackNetworkID: oldAction.Destination.StackNetworkID,
-						}
-						newAction = a
-					case *types.SwapStackRequestAction:
-						a := &protocol.SwapStackRequestAction{}
-						a.Source = protocol.StackRequestSlotInfo{
-							Container:      protocol.FullContainerName{ContainerID: oldAction.Source.ContainerID},
-							Slot:           oldAction.Source.Slot,
-							StackNetworkID: oldAction.Source.StackNetworkID,
-						}
-						a.Destination = protocol.StackRequestSlotInfo{
-							Container:      protocol.FullContainerName{ContainerID: oldAction.Destination.ContainerID},
-							Slot:           oldAction.Destination.Slot,
-							StackNetworkID: oldAction.Destination.StackNetworkID,
-						}
-						newAction = a
-					case *types.DropStackRequestAction:
-						newAction = &protocol.DropStackRequestAction{
-							Count: oldAction.Count,
-							Source: protocol.StackRequestSlotInfo{
-								Container:      protocol.FullContainerName{ContainerID: oldAction.Source.ContainerID},
-								Slot:           oldAction.Source.Slot,
-								StackNetworkID: oldAction.Source.StackNetworkID,
-							},
-							Randomly: oldAction.Randomly,
-						}
-					case *types.DestroyStackRequestAction:
-						newAction = &protocol.DestroyStackRequestAction{
-							Count: oldAction.Count,
-							Source: protocol.StackRequestSlotInfo{
-								Container:      protocol.FullContainerName{ContainerID: oldAction.Source.ContainerID},
-								Slot:           oldAction.Source.Slot,
-								StackNetworkID: oldAction.Source.StackNetworkID,
-							},
-						}
-					case *types.ConsumeStackRequestAction:
-						newAction = &protocol.DestroyStackRequestAction{
-							Count: oldAction.Count,
-							Source: protocol.StackRequestSlotInfo{
-								Container:      protocol.FullContainerName{ContainerID: oldAction.Source.ContainerID},
-								Slot:           oldAction.Source.Slot,
-								StackNetworkID: oldAction.Source.StackNetworkID,
-							},
-						}
-					case *types.PlaceInContainerStackRequestAction:
-						a := &protocol.TakeStackRequestAction{}
-						a.Count = oldAction.Count
-						a.Source = protocol.StackRequestSlotInfo{
-							Container:      protocol.FullContainerName{ContainerID: oldAction.Source.ContainerID},
-							Slot:           oldAction.Source.Slot,
-							StackNetworkID: oldAction.Source.StackNetworkID,
-						}
-						a.Destination = protocol.StackRequestSlotInfo{
-							Container:      protocol.FullContainerName{ContainerID: oldAction.Destination.ContainerID},
-							Slot:           oldAction.Destination.Slot,
-							StackNetworkID: oldAction.Destination.StackNetworkID,
-						}
-						newAction = a
-					case *types.TakeOutContainerStackRequestAction:
-						a := &protocol.TakeStackRequestAction{}
-						a.Count = oldAction.Count
-						a.Source = protocol.StackRequestSlotInfo{
-							Container:      protocol.FullContainerName{ContainerID: oldAction.Source.ContainerID},
-							Slot:           oldAction.Source.Slot,
-							StackNetworkID: oldAction.Source.StackNetworkID,
-						}
-						a.Destination = protocol.StackRequestSlotInfo{
-							Container:      protocol.FullContainerName{ContainerID: oldAction.Destination.ContainerID},
-							Slot:           oldAction.Destination.Slot,
-							StackNetworkID: oldAction.Destination.StackNetworkID,
-						}
-						newAction = a
-					case *types.LabTableCombineStackRequestAction:
-						newAction = &protocol.LabTableCombineStackRequestAction{}
-					case *types.CraftRecipeStackRequestAction:
-						newAction = &oldAction.CraftRecipeStackRequestAction
-					case *types.AutoCraftRecipeStackRequestAction:
-						newAction = &oldAction.AutoCraftRecipeStackRequestAction
-					case *types.CraftCreativeStackRequestAction:
-						newAction = &oldAction.CraftCreativeStackRequestAction
-					case *types.CraftRecipeOptionalStackRequestAction:
-						newAction = &oldAction.CraftRecipeOptionalStackRequestAction
-					case *types.CraftGrindstoneRecipeStackRequestAction:
-						newAction = &oldAction.CraftGrindstoneRecipeStackRequestAction
-					}
-
-					req.Actions[aIndex] = newAction
+				pk.Requests[i] = protocol.ItemStackRequest{
+					RequestID:     req.RequestID,
+					Actions:       types.UpgradeItemStackActions(req.Actions),
+					FilterStrings: req.FilterStrings,
+					FilterCause:   req.FilterCause,
 				}
 
-				pk.Requests[i] = req
+				for _, a := range pk.Requests[i].Actions {
+					fmt.Printf("%T\n", a)
+				}
+			}
+		case *v686packet.PlayerAuthInput:
+			pks[index] = &packet.PlayerAuthInput{
+				Pitch:                  pk.Pitch,
+				Yaw:                    pk.Yaw,
+				Position:               pk.Position,
+				MoveVector:             pk.MoveVector,
+				HeadYaw:                pk.HeadYaw,
+				InputData:              pk.InputData,
+				InputMode:              pk.InputMode,
+				PlayMode:               pk.PlayMode,
+				InteractionModel:       pk.InteractionModel,
+				InteractPitch:          pk.GazeDirection.X(),
+				InteractYaw:            pk.GazeDirection.Y(),
+				Tick:                   pk.Tick,
+				Delta:                  pk.Delta,
+				ItemInteractionData:    pk.ItemInteractionData,
+				ItemStackRequest:       pk.ItemStackRequest,
+				BlockActions:           pk.BlockActions,
+				VehicleRotation:        pk.VehicleRotation,
+				ClientPredictedVehicle: pk.ClientPredictedVehicle,
+				AnalogueMoveVector:     pk.AnalogueMoveVector,
 			}
 		}
 	}
@@ -353,6 +307,15 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				Position:  pk.Position,
 				Respawn:   pk.Respawn,
 			}
+		case *packet.ContainerRegistryCleanup:
+			containers := make([]types.FullContainerName, len(pk.RemovedContainers))
+			for index, container := range pk.RemovedContainers {
+				containers[index] = types.DowngradeContainer(container)
+			}
+
+			pks[index] = &v686packet.ContainerRegistryCleanup{
+				RemovedContainers: containers,
+			}
 		case *packet.CorrectPlayerMovePrediction:
 			pks[index] = &v686packet.CorrectPlayerMovePrediction{
 				PredictionType: pk.PredictionType,
@@ -372,6 +335,14 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 			pks[index] = &v686packet.EditorNetwork{
 				Payload: pk.Payload,
 			}
+		case *packet.Emote:
+			pks[index] = &v686packet.Emote{
+				EntityRuntimeID: pk.EntityRuntimeID,
+				EmoteID:         pk.EmoteID,
+				XUID:            pk.XUID,
+				PlatformID:      pk.PlatformID,
+				Flags:           pk.Flags,
+			}
 		case *packet.InventoryContent:
 			pks[index] = &v686packet.InventoryContent{
 				WindowID: pk.WindowID,
@@ -386,17 +357,19 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 		case *packet.ItemStackResponse:
 			responses := make([]types.ItemStackResponse, len(pk.Responses))
 			for index, response := range pk.Responses {
-				tResponse := types.ItemStackResponse{}
-				tResponse.Status = response.Status
-				tResponse.RequestID = response.RequestID
-
 				containerInfo := make([]types.StackResponseContainerInfo, len(response.ContainerInfo))
 				for cIndex, info := range response.ContainerInfo {
-					containerInfo[cIndex] = types.StackResponseContainerInfo{StackResponseContainerInfo: info}
+					containerInfo[cIndex] = types.StackResponseContainerInfo{
+						Container: types.DowngradeContainer(info.Container),
+						SlotInfo:  info.SlotInfo,
+					}
 				}
-				tResponse.ContainerInfo = containerInfo
 
-				responses[index] = tResponse
+				responses[index] = types.ItemStackResponse{
+					Status:        response.Status,
+					RequestID:     response.RequestID,
+					ContainerInfo: containerInfo,
+				}
 			}
 
 			pks[index] = &v686packet.ItemStackResponse{
@@ -409,6 +382,16 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				Chestplate:      pk.Chestplate,
 				Leggings:        pk.Leggings,
 				Boots:           pk.Boots,
+			}
+		case *packet.MobEffect:
+			pks[index] = &v686packet.MobEffect{
+				EntityRuntimeID: pk.EntityRuntimeID,
+				Operation:       pk.Operation,
+				EffectType:      pk.EffectType,
+				Amplifier:       pk.Amplifier,
+				Particles:       pk.Particles,
+				Duration:        pk.Duration,
+				Tick:            pk.Tick,
 			}
 		case *packet.PlayerArmourDamage:
 			var bitset uint8
@@ -474,6 +457,31 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				EntityLink: types.EntityLink{
 					EntityLink: pk.EntityLink,
 				},
+			}
+		case *packet.Transfer:
+			pks[index] = &v686packet.Transfer{
+				Address: pk.Address,
+				Port:    pk.Port,
+			}
+		case *packet.UpdateAttributes:
+			attributes := make([]types.Attribute, len(pk.Attributes))
+			for index, a := range pk.Attributes {
+				attributes[index] = types.Attribute{
+					AttributeValue: protocol.AttributeValue{
+						Name:  a.Name,
+						Value: a.Value,
+						Min:   a.Min,
+						Max:   a.Max,
+					},
+					Default:   a.Default,
+					Modifiers: a.Modifiers,
+				}
+			}
+
+			pks[index] = &v686packet.UpdateAttributes{
+				EntityRuntimeID: pk.EntityRuntimeID,
+				Attributes:      attributes,
+				Tick:            pk.Tick,
 			}
 		}
 	}

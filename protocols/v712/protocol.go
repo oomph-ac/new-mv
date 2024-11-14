@@ -113,10 +113,10 @@ func (Protocol) NewWriter(w minecraft.ByteWriter, shieldID int32) protocol.IO {
 }
 
 func (p Protocol) ConvertToLatest(pk packet.Packet, conn *minecraft.Conn) []packet.Packet {
-	return p.blockTranslator.UpgradeBlockPackets(
-		p.itemTranslator.UpgradeItemPackets(ProtoUpgrade([]packet.Packet{pk}), conn),
+	return ProtoUpgrade(p.blockTranslator.UpgradeBlockPackets(
+		p.itemTranslator.UpgradeItemPackets([]packet.Packet{pk}, conn),
 		conn,
-	)
+	))
 }
 
 func ProtoUpgrade(pks []packet.Packet) []packet.Packet {
