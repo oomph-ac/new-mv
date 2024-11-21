@@ -2,7 +2,6 @@ package v662
 
 import (
 	_ "embed"
-	"fmt"
 
 	"github.com/oomph-ac/new-mv/internal/chunk"
 	"github.com/oomph-ac/new-mv/mapping"
@@ -96,7 +95,6 @@ func init() {
 	packetPool_client[packet.IDContainerClose] = func() packet.Packet { return &v662packet.ContainerClose{} }
 	packetPool_server[packet.IDText] = func() packet.Packet { return &v662packet.Text{} }
 	packetPool_client[packet.IDText] = func() packet.Packet { return &v662packet.Text{} }
-
 	// ------------------------ 1.20.80 changes ------------------------
 
 	// ------------------------ 1.20.70 changes ------------------------
@@ -132,7 +130,7 @@ func (Protocol) ID() int32 {
 }
 
 func (Protocol) Ver() string {
-	return "1.21.0"
+	return "1.20.70"
 }
 
 func (Protocol) Packets(listener bool) packet.Pool {
@@ -215,10 +213,6 @@ func ProtoUpgrade(pks []packet.Packet) []packet.Packet {
 					Actions:       types.UpgradeItemStackActions(req.Actions),
 					FilterStrings: req.FilterStrings,
 					FilterCause:   req.FilterCause,
-				}
-
-				for _, a := range pk.Requests[i].Actions {
-					fmt.Printf("%T\n", a)
 				}
 			}
 		case *v662packet.PlayerAuthInput:

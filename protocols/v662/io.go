@@ -27,7 +27,6 @@ func (r *Reader) Recipe(x *protocol.Recipe) {
 		r.UnknownEnumOption(recipeType, "crafting data recipe type")
 		return
 	}
-	fmt.Printf("MV recp read %T\n", *x)
 	(*x).Unmarshal(r)
 }
 
@@ -96,7 +95,6 @@ func (w *Writer) Recipe(x *protocol.Recipe) {
 		w.UnknownEnumOption(fmt.Sprintf("%T", *x), "crafting data recipe type")
 	}
 	w.Varint32(&recipeType)
-	fmt.Printf("MV recp write %T\n", *x)
 	(*x).Marshal(w)
 }
 

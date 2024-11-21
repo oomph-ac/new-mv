@@ -2,7 +2,6 @@ package v686
 
 import (
 	_ "embed"
-	"fmt"
 
 	"github.com/oomph-ac/new-mv/internal/chunk"
 	"github.com/oomph-ac/new-mv/mapping"
@@ -194,10 +193,6 @@ func ProtoUpgrade(pks []packet.Packet) []packet.Packet {
 					Actions:       types.UpgradeItemStackActions(req.Actions),
 					FilterStrings: req.FilterStrings,
 					FilterCause:   req.FilterCause,
-				}
-
-				for _, a := range pk.Requests[i].Actions {
-					fmt.Printf("%T\n", a)
 				}
 			}
 		case *v686packet.PlayerAuthInput:

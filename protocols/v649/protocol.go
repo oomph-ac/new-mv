@@ -1,4 +1,4 @@
-package v671
+package v649
 
 import (
 	_ "embed"
@@ -6,8 +6,8 @@ import (
 	"github.com/oomph-ac/new-mv/internal/chunk"
 	"github.com/oomph-ac/new-mv/mapping"
 	"github.com/oomph-ac/new-mv/protocols/latest"
-	v671packet "github.com/oomph-ac/new-mv/protocols/v671/packet"
-	"github.com/oomph-ac/new-mv/protocols/v671/types"
+	v649packet "github.com/oomph-ac/new-mv/protocols/v649/packet"
+	"github.com/oomph-ac/new-mv/protocols/v649/types"
 	"github.com/oomph-ac/new-mv/translator"
 	"github.com/sandertv/gophertunnel/minecraft"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
@@ -19,8 +19,8 @@ const (
 	ItemVersion = 201
 	// BlockVersion is the version of blocks (states) of the game. This version is composed
 	// of 4 bytes indicating a version, interpreted as a big endian int. The current version represents
-	// 1.21.80.0
-	BlockVersion int32 = (1 << 24) | (20 << 16) | (80 << 8)
+	// 1.20.70.0
+	BlockVersion int32 = (1 << 24) | (20 << 16) | (60 << 8)
 )
 
 var (
@@ -44,24 +44,21 @@ func init() {
 	// ------------------------ 1.21.30 changes ------------------------
 	delete(packetPool_server, packet.IDMovementEffect)
 	delete(packetPool_server, packet.IDSetMovementAuthority)
-
-	packetPool_server[packet.IDMobEffect] = func() packet.Packet { return &v671packet.MobEffect{} }
-	packetPool_client[packet.IDPlayerAuthInput] = func() packet.Packet { return &v671packet.PlayerAuthInput{} }
 	// ------------------------ 1.21.30 changes ------------------------
 
 	// ------------------------ 1.21.20 changes ------------------------
 	delete(packetPool_server, packet.IDCameraAimAssist)
 	delete(packetPool_server, packet.IDContainerRegistryCleanup)
 
-	packetPool_server[packet.IDEmote] = func() packet.Packet { return &v671packet.Emote{} }
-	packetPool_client[packet.IDEmote] = func() packet.Packet { return &v671packet.Emote{} }
+	packetPool_server[packet.IDEmote] = func() packet.Packet { return &v649packet.Emote{} }
+	packetPool_client[packet.IDEmote] = func() packet.Packet { return &v649packet.Emote{} }
 
-	packetPool_server[packet.IDCameraPresets] = func() packet.Packet { return &v671packet.CameraPresets{} }
-	packetPool_server[packet.IDContainerRegistryCleanup] = func() packet.Packet { return &v671packet.ContainerRegistryCleanup{} }
-	packetPool_server[packet.IDItemStackResponse] = func() packet.Packet { return &v671packet.ItemStackResponse{} }
-	packetPool_server[packet.IDResourcePacksInfo] = func() packet.Packet { return &v671packet.ResourcePacksInfo{} }
-	packetPool_server[packet.IDTransfer] = func() packet.Packet { return &v671packet.Transfer{} }
-	packetPool_server[packet.IDUpdateAttributes] = func() packet.Packet { return &v671packet.UpdateAttributes{} }
+	packetPool_server[packet.IDCameraPresets] = func() packet.Packet { return &v649packet.CameraPresets{} }
+	packetPool_server[packet.IDContainerRegistryCleanup] = func() packet.Packet { return &v649packet.ContainerRegistryCleanup{} }
+	packetPool_server[packet.IDItemStackResponse] = func() packet.Packet { return &v649packet.ItemStackResponse{} }
+	packetPool_server[packet.IDResourcePacksInfo] = func() packet.Packet { return &v649packet.ResourcePacksInfo{} }
+	packetPool_server[packet.IDTransfer] = func() packet.Packet { return &v649packet.Transfer{} }
+	packetPool_server[packet.IDUpdateAttributes] = func() packet.Packet { return &v649packet.UpdateAttributes{} }
 	// ------------------------ 1.21.20 changes ------------------------
 
 	// ------------------------ 1.21.2 changes ------------------------
@@ -70,35 +67,49 @@ func init() {
 	delete(packetPool_client, packet.IDServerBoundDiagnostics)
 	delete(packetPool_client, packet.IDServerBoundLoadingScreen)
 
-	packetPool_server[packet.IDMobArmourEquipment] = func() packet.Packet { return &v671packet.MobArmourEquipment{} }
-	packetPool_client[packet.IDMobArmourEquipment] = func() packet.Packet { return &v671packet.MobArmourEquipment{} }
+	packetPool_server[packet.IDMobArmourEquipment] = func() packet.Packet { return &v649packet.MobArmourEquipment{} }
+	packetPool_client[packet.IDMobArmourEquipment] = func() packet.Packet { return &v649packet.MobArmourEquipment{} }
 
-	packetPool_server[packet.IDEditorNetwork] = func() packet.Packet { return &v671packet.EditorNetwork{} }
-	packetPool_client[packet.IDEditorNetwork] = func() packet.Packet { return &v671packet.EditorNetwork{} }
+	packetPool_server[packet.IDEditorNetwork] = func() packet.Packet { return &v649packet.EditorNetwork{} }
+	packetPool_client[packet.IDEditorNetwork] = func() packet.Packet { return &v649packet.EditorNetwork{} }
 
-	packetPool_server[packet.IDAddActor] = func() packet.Packet { return &v671packet.AddActor{} }
-	packetPool_server[packet.IDAddPlayer] = func() packet.Packet { return &v671packet.AddPlayer{} }
-	packetPool_server[packet.IDCameraInstruction] = func() packet.Packet { return &v671packet.CameraInstruction{} }
-	packetPool_server[packet.IDChangeDimension] = func() packet.Packet { return &v671packet.ChangeDimension{} }
-	packetPool_server[packet.IDCompressedBiomeDefinitionList] = func() packet.Packet { return &v671packet.CompressedBiomeDefinitionList{} }
-	packetPool_server[packet.IDCorrectPlayerMovePrediction] = func() packet.Packet { return &v671packet.CorrectPlayerMovePrediction{} }
-	packetPool_server[packet.IDDisconnect] = func() packet.Packet { return &v671packet.Disconnect{} }
-	packetPool_server[packet.IDInventoryContent] = func() packet.Packet { return &v671packet.InventoryContent{} }
-	packetPool_server[packet.IDInventorySlot] = func() packet.Packet { return &v671packet.InventorySlot{} }
-	packetPool_server[packet.IDPlayerArmourDamage] = func() packet.Packet { return &v671packet.PlayerArmourDamage{} }
-	packetPool_server[packet.IDSetTitle] = func() packet.Packet { return &v671packet.SetTitle{} }
-	packetPool_server[packet.IDStopSound] = func() packet.Packet { return &v671packet.StopSound{} }
+	packetPool_server[packet.IDAddActor] = func() packet.Packet { return &v649packet.AddActor{} }
+	packetPool_server[packet.IDAddPlayer] = func() packet.Packet { return &v649packet.AddPlayer{} }
+	packetPool_server[packet.IDCameraInstruction] = func() packet.Packet { return &v649packet.CameraInstruction{} }
+	packetPool_server[packet.IDChangeDimension] = func() packet.Packet { return &v649packet.ChangeDimension{} }
+	packetPool_server[packet.IDCompressedBiomeDefinitionList] = func() packet.Packet { return &v649packet.CompressedBiomeDefinitionList{} }
+	packetPool_server[packet.IDDisconnect] = func() packet.Packet { return &v649packet.Disconnect{} }
+	packetPool_server[packet.IDInventoryContent] = func() packet.Packet { return &v649packet.InventoryContent{} }
+	packetPool_server[packet.IDInventorySlot] = func() packet.Packet { return &v649packet.InventorySlot{} }
+	packetPool_server[packet.IDPlayerArmourDamage] = func() packet.Packet { return &v649packet.PlayerArmourDamage{} }
+	packetPool_server[packet.IDSetTitle] = func() packet.Packet { return &v649packet.SetTitle{} }
+	packetPool_server[packet.IDStopSound] = func() packet.Packet { return &v649packet.StopSound{} }
 	// ------------------------ 1.21.2 changes ------------------------
 
 	// ------------------------ 1.20.80 changes ------------------------
 	delete(packetPool_server, packet.IDAwardAchievement)
-	packetPool_server[packet.IDContainerClose] = func() packet.Packet { return &v671packet.ContainerClose{} }
-	packetPool_client[packet.IDContainerClose] = func() packet.Packet { return &v671packet.ContainerClose{} }
-	packetPool_server[packet.IDText] = func() packet.Packet { return &v671packet.Text{} }
-	packetPool_client[packet.IDText] = func() packet.Packet { return &v671packet.Text{} }
-
-	packetPool_server[packet.IDStartGame] = func() packet.Packet { return &v671packet.StartGame{} }
+	packetPool_server[packet.IDContainerClose] = func() packet.Packet { return &v649packet.ContainerClose{} }
+	packetPool_client[packet.IDContainerClose] = func() packet.Packet { return &v649packet.ContainerClose{} }
+	packetPool_server[packet.IDText] = func() packet.Packet { return &v649packet.Text{} }
+	packetPool_client[packet.IDText] = func() packet.Packet { return &v649packet.Text{} }
 	// ------------------------ 1.20.80 changes ------------------------
+
+	// ------------------------ 1.20.70 changes ------------------------
+	packetPool_server[packet.IDCorrectPlayerMovePrediction] = func() packet.Packet { return &v649packet.CorrectPlayerMovePrediction{} }
+	packetPool_server[packet.IDResourcePackStack] = func() packet.Packet { return &v649packet.ResourcePackStack{} }
+	packetPool_server[packet.IDStartGame] = func() packet.Packet { return &v649packet.StartGame{} }
+	packetPool_server[packet.IDUpdateBlockSynced] = func() packet.Packet { return &v649packet.UpdateBlockSynced{} }
+	packetPool_server[packet.IDUpdatePlayerGameType] = func() packet.Packet { return &v649packet.UpdatePlayerGameType{} }
+	// ------------------------ 1.20.70 changes ------------------------
+
+	// ------------------------ 1.20.60 changes ------------------------
+	// NOTE: Packet with ID 71 (ItemFrameDropItem is server bound and should be cancelled).
+	packetPool_client[packet.IDLecternUpdate] = func() packet.Packet { return &v649packet.LecternUpdate{} }
+	packetPool_client[packet.IDPlayerAuthInput] = func() packet.Packet { return &v649packet.PlayerAuthInput{} }
+
+	packetPool_server[packet.IDMobEffect] = func() packet.Packet { return &v649packet.MobEffect{} }
+	packetPool_server[packet.IDSetActorMotion] = func() packet.Packet { return &v649packet.SetActorMotion{} }
+	// ------------------------ 1.20.60 changes ------------------------
 }
 
 type Protocol struct {
@@ -121,11 +132,11 @@ func New(direct bool) *Protocol {
 }
 
 func (Protocol) ID() int32 {
-	return 671
+	return 649
 }
 
 func (Protocol) Ver() string {
-	return "1.20.80"
+	return "1.20.60"
 }
 
 func (Protocol) Packets(listener bool) packet.Pool {
@@ -157,12 +168,12 @@ func (p Protocol) ConvertToLatest(pk packet.Packet, conn *minecraft.Conn) []pack
 func ProtoUpgrade(pks []packet.Packet) []packet.Packet {
 	for index, pk := range pks {
 		switch pk := pk.(type) {
-		case *v671packet.ContainerClose:
+		case *v649packet.ContainerClose:
 			pks[index] = &packet.ContainerClose{
 				WindowID:   pk.WindowID,
 				ServerSide: pk.ServerSide,
 			}
-		case *v671packet.Emote:
+		case *v649packet.Emote:
 			pks[index] = &packet.Emote{
 				EntityRuntimeID: pk.EntityRuntimeID,
 				EmoteID:         pk.EmoteID,
@@ -171,12 +182,18 @@ func ProtoUpgrade(pks []packet.Packet) []packet.Packet {
 				PlatformID:      pk.PlatformID,
 				Flags:           pk.Flags,
 			}
-		case *v671packet.EditorNetwork:
+		case *v649packet.EditorNetwork:
 			pks[index] = &packet.EditorNetwork{
 				RouteToManager: false,
 				Payload:        pk.Payload,
 			}
-		case *v671packet.MobArmourEquipment:
+		case *v649packet.LecternUpdate:
+			pks[index] = &packet.LecternUpdate{
+				Page:      pk.Page,
+				PageCount: pk.PageCount,
+				Position:  pk.Position,
+			}
+		case *v649packet.MobArmourEquipment:
 			pks[index] = &packet.MobArmourEquipment{
 				EntityRuntimeID: pk.EntityRuntimeID,
 				Helmet:          pk.Helmet,
@@ -210,7 +227,7 @@ func ProtoUpgrade(pks []packet.Packet) []packet.Packet {
 					FilterCause:   req.FilterCause,
 				}
 			}
-		case *v671packet.PlayerAuthInput:
+		case *v649packet.PlayerAuthInput:
 			pks[index] = &packet.PlayerAuthInput{
 				Pitch:                  pk.Pitch,
 				Yaw:                    pk.Yaw,
@@ -228,11 +245,10 @@ func ProtoUpgrade(pks []packet.Packet) []packet.Packet {
 				ItemInteractionData:    pk.ItemInteractionData,
 				ItemStackRequest:       pk.ItemStackRequest,
 				BlockActions:           pk.BlockActions,
-				VehicleRotation:        pk.VehicleRotation,
 				ClientPredictedVehicle: pk.ClientPredictedVehicle,
 				AnalogueMoveVector:     pk.AnalogueMoveVector,
 			}
-		case *v671packet.Text:
+		case *v649packet.Text:
 			pks[index] = &packet.Text{
 				TextType:         pk.TextType,
 				NeedsTranslation: pk.NeedsTranslation,
@@ -264,7 +280,7 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				eLinks[index] = types.EntityLink{EntityLink: link}
 			}
 
-			pks[index] = &v671packet.AddActor{
+			pks[index] = &v649packet.AddActor{
 				EntityUniqueID:   pk.EntityUniqueID,
 				EntityRuntimeID:  pk.EntityRuntimeID,
 				EntityType:       pk.EntityType,
@@ -285,7 +301,7 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				eLinks[index] = types.EntityLink{EntityLink: link}
 			}
 
-			pks[index] = &v671packet.AddPlayer{
+			pks[index] = &v649packet.AddPlayer{
 				UUID:             pk.UUID,
 				Username:         pk.Username,
 				EntityRuntimeID:  pk.EntityRuntimeID,
@@ -304,8 +320,46 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				DeviceID:         pk.DeviceID,
 				BuildPlatform:    pk.BuildPlatform,
 			}
+		case *packet.AvailableCommands:
+			for cmdIndex, cmd := range pk.Commands {
+				for overloadIndex, overload := range cmd.Overloads {
+					for paramIndex, param := range overload.Parameters {
+						var newT uint32 = protocol.CommandArgValid
+
+						switch param.Type ^ protocol.CommandArgValid {
+						case protocol.CommandArgTypeEquipmentSlots:
+							newT |= types.CommandArgTypeEquipmentSlots
+						case protocol.CommandArgTypeString:
+							newT |= types.CommandArgTypeString
+						case protocol.CommandArgTypeBlockPosition:
+							newT |= types.CommandArgTypeBlockPosition
+						case protocol.CommandArgTypePosition:
+							newT |= types.CommandArgTypePosition
+						case protocol.CommandArgTypeMessage:
+							newT |= types.CommandArgTypeMessage
+						case protocol.CommandArgTypeRawText:
+							newT |= types.CommandArgTypeRawText
+						case protocol.CommandArgTypeJSON:
+							newT |= types.CommandArgTypeJSON
+						case protocol.CommandArgTypeBlockStates:
+							newT |= types.CommandArgTypeBlockStates
+						case protocol.CommandArgTypeCommand:
+							newT |= types.CommandArgTypeCommand
+						default:
+							newT = param.Type
+						}
+						param.Type = newT
+
+						overload.Parameters[paramIndex] = param
+					}
+
+					cmd.Overloads[overloadIndex] = overload
+				}
+
+				pk.Commands[cmdIndex] = cmd
+			}
 		case *packet.CameraInstruction:
-			pks[index] = &v671packet.CameraInstruction{
+			pks[index] = &v649packet.CameraInstruction{
 				Set:   pk.Set,
 				Clear: pk.Clear,
 				Fade:  pk.Fade,
@@ -318,17 +372,17 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				}
 			}
 
-			pks[index] = &v671packet.CameraPresets{
+			pks[index] = &v649packet.CameraPresets{
 				Presets: presets,
 			}
 		case *packet.ChangeDimension:
-			pks[index] = &v671packet.ChangeDimension{
+			pks[index] = &v649packet.ChangeDimension{
 				Dimension: pk.Dimension,
 				Position:  pk.Position,
 				Respawn:   pk.Respawn,
 			}
 		case *packet.ContainerClose:
-			pks[index] = &v671packet.ContainerClose{
+			pks[index] = &v649packet.ContainerClose{
 				WindowID:   pk.WindowID,
 				ServerSide: pk.ServerSide,
 			}
@@ -338,32 +392,31 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				containers[index] = types.DowngradeContainer(container)
 			}
 
-			pks[index] = &v671packet.ContainerRegistryCleanup{
+			pks[index] = &v649packet.ContainerRegistryCleanup{
 				RemovedContainers: containers,
 			}
 		case *packet.CorrectPlayerMovePrediction:
-			pks[index] = &v671packet.CorrectPlayerMovePrediction{
+			pks[index] = &v649packet.CorrectPlayerMovePrediction{
 				PredictionType: pk.PredictionType,
 				Position:       pk.Position,
 				Delta:          pk.Delta,
-				Rotation:       pk.Rotation,
 				OnGround:       pk.OnGround,
 				Tick:           pk.Tick,
 			}
 		case *packet.CraftingData:
 			pk.Recipes = types.DowngradeRecipes(pk.Recipes)
 		case *packet.Disconnect:
-			pks[index] = &v671packet.Disconnect{
+			pks[index] = &v649packet.Disconnect{
 				Reason:                  pk.Reason,
 				HideDisconnectionScreen: pk.HideDisconnectionScreen,
 				Message:                 pk.Message,
 			}
 		case *packet.EditorNetwork:
-			pks[index] = &v671packet.EditorNetwork{
+			pks[index] = &v649packet.EditorNetwork{
 				Payload: pk.Payload,
 			}
 		case *packet.Emote:
-			pks[index] = &v671packet.Emote{
+			pks[index] = &v649packet.Emote{
 				EntityRuntimeID: pk.EntityRuntimeID,
 				EmoteID:         pk.EmoteID,
 				XUID:            pk.XUID,
@@ -371,12 +424,12 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				Flags:           pk.Flags,
 			}
 		case *packet.InventoryContent:
-			pks[index] = &v671packet.InventoryContent{
+			pks[index] = &v649packet.InventoryContent{
 				WindowID: pk.WindowID,
 				Content:  pk.Content,
 			}
 		case *packet.InventorySlot:
-			pks[index] = &v671packet.InventorySlot{
+			pks[index] = &v649packet.InventorySlot{
 				WindowID: pk.WindowID,
 				Slot:     pk.Slot,
 				NewItem:  pk.NewItem,
@@ -399,11 +452,11 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				}
 			}
 
-			pks[index] = &v671packet.ItemStackResponse{
+			pks[index] = &v649packet.ItemStackResponse{
 				Responses: responses,
 			}
 		case *packet.MobArmourEquipment:
-			pks[index] = &v671packet.MobArmourEquipment{
+			pks[index] = &v649packet.MobArmourEquipment{
 				EntityRuntimeID: pk.EntityRuntimeID,
 				Helmet:          pk.Helmet,
 				Chestplate:      pk.Chestplate,
@@ -411,14 +464,13 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				Boots:           pk.Boots,
 			}
 		case *packet.MobEffect:
-			pks[index] = &v671packet.MobEffect{
+			pks[index] = &v649packet.MobEffect{
 				EntityRuntimeID: pk.EntityRuntimeID,
 				Operation:       pk.Operation,
 				EffectType:      pk.EffectType,
 				Amplifier:       pk.Amplifier,
 				Particles:       pk.Particles,
 				Duration:        pk.Duration,
-				Tick:            pk.Tick,
 			}
 		case *packet.PlayerArmourDamage:
 			var bitset uint8
@@ -435,12 +487,21 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				bitset = bitset | 0b1000
 			}
 
-			pks[index] = &v671packet.PlayerArmourDamage{
+			pks[index] = &v649packet.PlayerArmourDamage{
 				Bitset:           bitset,
 				HelmetDamage:     pk.HelmetDamage,
 				ChestplateDamage: pk.ChestplateDamage,
 				LeggingsDamage:   pk.LeggingsDamage,
 				BootsDamage:      pk.BootsDamage,
+			}
+		case *packet.ResourcePackStack:
+			pks[index] = &v649packet.ResourcePackStack{
+				TexturePackRequired:          pk.TexturePackRequired,
+				BehaviourPacks:               pk.BehaviourPacks,
+				TexturePacks:                 pk.TexturePacks,
+				BaseGameVersion:              pk.BaseGameVersion,
+				Experiments:                  pk.Experiments,
+				ExperimentsPreviouslyToggled: pk.ExperimentsPreviouslyToggled,
 			}
 		case *packet.ResourcePacksInfo:
 			tPacks := make([]types.TexturePackInfo, len(pk.TexturePacks))
@@ -455,9 +516,8 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				}
 			}
 
-			pks[index] = &v671packet.ResourcePacksInfo{
+			pks[index] = &v649packet.ResourcePacksInfo{
 				TexturePackRequired: pk.TexturePackRequired,
-				HasAddons:           pk.HasAddons,
 				HasScripts:          pk.HasScripts,
 				BehaviourPacks:      []types.TexturePackInfo{},
 				TexturePacks:        tPacks,
@@ -465,7 +525,7 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				PackURLs:            packURLs,
 			}
 		case *packet.SetTitle:
-			pks[index] = &v671packet.SetTitle{
+			pks[index] = &v649packet.SetTitle{
 				ActionType:       pk.ActionType,
 				Text:             pk.Text,
 				FadeInDuration:   pk.FadeInDuration,
@@ -475,7 +535,7 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				PlatformOnlineID: pk.PlatformOnlineID,
 			}
 		case *packet.StartGame:
-			pks[index] = &v671packet.StartGame{
+			pks[index] = &v649packet.StartGame{
 				EntityUniqueID:                 pk.EntityUniqueID,
 				EntityRuntimeID:                pk.EntityRuntimeID,
 				PlayerGameMode:                 pk.PlayerGameMode,
@@ -553,18 +613,23 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				ServerAuthoritativeSound:       pk.ServerAuthoritativeSound,
 			}
 		case *packet.StopSound:
-			pks[index] = &v671packet.StopSound{
+			pks[index] = &v649packet.StopSound{
 				SoundName: pk.SoundName,
 				StopAll:   pk.StopAll,
 			}
 		case *packet.SetActorLink:
-			pks[index] = &v671packet.SetActorLink{
+			pks[index] = &v649packet.SetActorLink{
 				EntityLink: types.EntityLink{
 					EntityLink: pk.EntityLink,
 				},
 			}
+		case *packet.SetActorMotion:
+			pks[index] = &v649packet.SetActorMotion{
+				EntityRuntimeID: pk.EntityRuntimeID,
+				Velocity:        pk.Velocity,
+			}
 		case *packet.Text:
-			pks[index] = &v671packet.Text{
+			pks[index] = &v649packet.Text{
 				TextType:         pk.TextType,
 				NeedsTranslation: pk.NeedsTranslation,
 				SourceName:       pk.SourceName,
@@ -574,7 +639,7 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				PlatformChatID:   pk.PlatformChatID,
 			}
 		case *packet.Transfer:
-			pks[index] = &v671packet.Transfer{
+			pks[index] = &v649packet.Transfer{
 				Address: pk.Address,
 				Port:    pk.Port,
 			}
@@ -593,10 +658,24 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 				}
 			}
 
-			pks[index] = &v671packet.UpdateAttributes{
+			pks[index] = &v649packet.UpdateAttributes{
 				EntityRuntimeID: pk.EntityRuntimeID,
 				Attributes:      attributes,
 				Tick:            pk.Tick,
+			}
+		case *packet.UpdateBlockSynced:
+			pks[index] = &v649packet.UpdateBlockSynced{
+				Position:          pk.Position,
+				NewBlockRuntimeID: pk.NewBlockRuntimeID,
+				Flags:             pk.Flags,
+				Layer:             pk.Layer,
+				EntityUniqueID:    int64(pk.EntityUniqueID),
+				TransitionType:    pk.TransitionType,
+			}
+		case *packet.UpdatePlayerGameType:
+			pks[index] = &v649packet.UpdatePlayerGameType{
+				GameType:       pk.GameType,
+				PlayerUniqueID: pk.PlayerUniqueID,
 			}
 		}
 	}

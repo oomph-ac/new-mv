@@ -1,9 +1,9 @@
-package v671
+package v649
 
 import (
 	"fmt"
 
-	"github.com/oomph-ac/new-mv/protocols/v671/types"
+	"github.com/oomph-ac/new-mv/protocols/v649/types"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 )
 
