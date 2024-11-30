@@ -16,7 +16,7 @@ import (
 
 const (
 	// ItemVersion is the version of items of the game which use for downgrading and upgrading.
-	ItemVersion = 201
+	ItemVersion = 171
 	// BlockVersion is the version of blocks (states) of the game. This version is composed
 	// of 4 bytes indicating a version, interpreted as a big endian int. The current version represents
 	// 1.20.70.0
@@ -33,8 +33,6 @@ var (
 
 	packetPool_server packet.Pool
 	packetPool_client packet.Pool
-
-	noPacketsAvailable = []packet.Packet{}
 )
 
 func init() {
@@ -397,11 +395,11 @@ func ProtoDowngrade(pks []packet.Packet) []packet.Packet {
 			}
 		case *packet.CorrectPlayerMovePrediction:
 			pks[index] = &v649packet.CorrectPlayerMovePrediction{
-				PredictionType: pk.PredictionType,
 				Position:       pk.Position,
 				Delta:          pk.Delta,
 				OnGround:       pk.OnGround,
 				Tick:           pk.Tick,
+				PredictionType: 0,
 			}
 		case *packet.CraftingData:
 			pk.Recipes = types.DowngradeRecipes(pk.Recipes)

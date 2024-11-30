@@ -16,7 +16,7 @@ import (
 
 const (
 	// ItemVersion is the version of items of the game which use for downgrading and upgrading.
-	ItemVersion = 201
+	ItemVersion = 181
 	// BlockVersion is the version of blocks (states) of the game. This version is composed
 	// of 4 bytes indicating a version, interpreted as a big endian int. The current version represents
 	// 1.20.70.0

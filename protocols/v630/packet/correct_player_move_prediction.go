@@ -25,8 +25,6 @@ type CorrectPlayerMovePrediction struct {
 	OnGround bool
 	// Tick is the tick of the movement which was corrected by this packet.
 	Tick uint64
-	// PredictionType is the type of prediction that was corrected. It is one of the constants above.
-	PredictionType byte
 }
 
 // ID ...
@@ -39,5 +37,4 @@ func (pk *CorrectPlayerMovePrediction) Marshal(io protocol.IO) {
 	io.Vec3(&pk.Delta)
 	io.Bool(&pk.OnGround)
 	io.Varuint64(&pk.Tick)
-	io.Uint8(&pk.PredictionType)
 }
