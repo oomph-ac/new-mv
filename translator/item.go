@@ -101,25 +101,14 @@ func (t *DefaultItemTranslator) DowngradeItemStack(input protocol.ItemStack) pro
 	}
 	input.ItemType = t.DowngradeItemType(input.ItemType)
 
-	blockRuntimeId := uint32(0)
-	if input.NetworkID != t.mapping.Air() {
-		name, _ := t.mapping.ItemRuntimeIDToName(input.NetworkID)
-		if latestBlockState, ok := item.BlockStateFromItemName(name, input.MetadataValue); ok {
-			var found bool
-			if blockRuntimeId, found = t.blockMapping.StateToRuntimeID(latestBlockState); !found {
-				blockRuntimeId = t.blockMapping.Air()
-			}
+	blockRuntimeId := t.mapping.Air()
+	if blockState, ok := t.blockMappingLatest.RuntimeIDToState(uint32(input.BlockRuntimeID)); ok {
+		if rid, found := t.blockMapping.StateToRuntimeID(blockState); found {
+			blockRuntimeId = int32(rid)
 		}
 	}
-	return protocol.ItemStack{
-		ItemType:       input.ItemType,
-		BlockRuntimeID: int32(blockRuntimeId),
-		Count:          input.Count,
-		NBTData:        input.NBTData,
-		CanBePlacedOn:  input.CanBePlacedOn,
-		CanBreak:       input.CanBreak,
-		HasNetworkID:   input.HasNetworkID,
-	}
+	input.BlockRuntimeID = blockRuntimeId
+	return input
 }
 
 func (t *DefaultItemTranslator) DowngradeItemInstance(input protocol.ItemInstance) protocol.ItemInstance {
@@ -219,22 +208,14 @@ func (t *DefaultItemTranslator) UpgradeItemStack(input protocol.ItemStack) proto
 	}
 	input.ItemType = t.UpgradeItemType(input.ItemType)
 
-	blockRuntimeId := uint32(0)
-	if input.NetworkID != t.latest.Air() {
-		name, _ := t.latest.ItemRuntimeIDToName(input.NetworkID)
-		if latestBlockState, ok := item.BlockStateFromItemName(name, input.MetadataValue); ok {
-			blockRuntimeId, _ = t.blockMappingLatest.StateToRuntimeID(latestBlockState)
+	blockRuntimeId := t.latest.Air()
+	if blockState, ok := t.blockMapping.RuntimeIDToState(uint32(input.BlockRuntimeID)); ok {
+		if rid, found := t.blockMappingLatest.StateToRuntimeID(blockState); found {
+			blockRuntimeId = int32(rid)
 		}
 	}
-	return protocol.ItemStack{
-		ItemType:       input.ItemType,
-		BlockRuntimeID: int32(blockRuntimeId),
-		Count:          input.Count,
-		NBTData:        input.NBTData,
-		CanBePlacedOn:  input.CanBePlacedOn,
-		CanBreak:       input.CanBreak,
-		HasNetworkID:   input.HasNetworkID,
-	}
+	input.BlockRuntimeID = blockRuntimeId
+	return input
 }
 
 func (t *DefaultItemTranslator) UpgradeItemInstance(input protocol.ItemInstance) protocol.ItemInstance {
